@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    command: tail -f /dev/null
+    volumes:
+      - ../:/app
+    ports:
+      - "5678:5678"

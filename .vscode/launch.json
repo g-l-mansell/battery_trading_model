@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "main (devcontainer)",
+      "type": "python",
+      "request": "launch",
+      "module": "battery_trading_model.main",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "pytest (devcontainer)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests", "-q"],
+      "console": "integratedTerminal",
+      "env": {"PYTHONPATH": "${workspaceFolder}/src"}
+    }
+  ]
+}

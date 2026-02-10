@@ -1,0 +1,6 @@
+services:
+  app:
+    build: .
+    command: python -m battery_trading_model.main
+    volumes:
+      - .:/app

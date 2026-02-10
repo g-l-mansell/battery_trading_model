@@ -1,0 +1,22 @@
+{
+  "name": "battery-trading-model (devcontainer)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/app",
+  "runServices": ["app"],
+  "shutdownAction": "stopCompose",
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy@2025.16.0"
+  ],
+  "settings": {
+    "python.languageServer": "Pylance",
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false
+  },
+  "remoteUser": "root"
+}
