@@ -12,4 +12,4 @@ __pycache__/
 # Ruff cache
 .ruff_cache/
 # Downloaded data
-/data/
+/src/battery_trading_model/data/
