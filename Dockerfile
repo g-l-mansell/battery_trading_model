@@ -4,7 +4,9 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt install -y openssh-client
 
 RUN pip install --no-cache-dir uv
 

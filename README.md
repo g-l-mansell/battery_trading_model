@@ -9,11 +9,11 @@ We can fetch electricity prices from three data sources:
 2. Settlement system sale prices from [Elexon](https://bmrs.elexon.co.uk/api-documentation/endpoint/balancing/settlement/system-prices/%7BsettlementDate%7D)
 3. System price of electricity from [the Office of National Statistics](https://www.ons.gov.uk/economy/economicoutputandproductivity/output/datasets/systempriceofelectricity)
 
-Datasources 1 and 2 are half hourly prices, and 3 is daily prices. Let's assume that these are three energy markets (m=1,2,3) in which we can participate, and all prices are released one day-ahead. Once we have the day-ahead prices, we choose at each timepoint whether to purchase electricity from one of the markets (charging our battery), sell to one of the markets (discharging our battery), or to do nothing (keep the current state of charge). 
+Datasources 1 and 2 are half hourly prices, and 3 is daily prices. Let's assume that these are three energy markets (m=1,2,3) in which we can participate, and all prices are released one day-ahead. 
 
-We can think of this as an optimisation problem. As a first pass, let's just look at 1 day (01/01/2023), and assume that there is no constraints on the battery participating in more than one market at a time (as this will turn the linear programming problem into mixed integer programming which is much slower).
+Once we have the day-ahead prices, we choose at each timepoint whether to purchase electricity from one of the markets (charging our battery), sell to one of the markets (discharging our battery), or to do nothing (keep the current state of charge). 
 
-Since the goal is to maximise profit, a naive optimisation will always choose to fully discharge by the end of the day. To counteract this we can put a estimated value on the final charge.
+We can formulate this as an optimisation problem, using the package `PuLP`. 
 
 ### Battery properties
 
@@ -66,6 +66,14 @@ We want to optimise the profit from the battery trading, given by:
 Profit = \sum_{t=1}^{T} \sum_{m=1}^{2} P_{m,t} (Z_{m,t} - X_{m,t}) + q(w - y)
 ```
 
+However this optimisation optimisation will always choose to fully discharge by the end of the day, which may not be optimal in a longer term strategy. To counteract this we can put a estimated value on the final charge $v$ e.g. the average price of the current day. 
+
+This gives us an objective function which differs slightly from the profit calculation.
+
+```math
+Objective function = \sum_{t=1}^{T} \sum_{m=1}^{2} P_{m,t} (Z_{m,t} - X_{m,t}) + q(w - y) + v \cdot SOC_{T}
+```
+
 ### Constraints
 
 The battery's SOC must be within its capacity limits at all times:
@@ -73,7 +81,7 @@ The battery's SOC must be within its capacity limits at all times:
 0 \leq SOC_{t} \leq C_{max}
 ```
 
-The amount of energy bought/sold must be within the batteries charging/discharging limits:
+The amount of energy traded must be possible given the battery's charging/discharging rates. If we were only participating in a single market at a time, the total energy transfered (MWh) must be less than the rate (MW) multiplied by the number of hours (h) i.e.
 
 $$0 \leq X_{m,t} \leq c_{rate} * 0.5$$
 
@@ -83,16 +91,14 @@ $$0 \leq y \leq c_{rate} * 24$$
 
 $$0 \leq w \leq d_{rate} * 24$$
 
-To prevent simultaneous charge and discharge, we add a binary mode variable per half-hourly interval:
+Assuming the battery cannot be charging and discharging at the same time, we can add a binary variable at each time point: `Mode=1` for charging and `Mode=0` for discharging. The total energy transfered at each timepoint must also match the charging rates.
 
-$$\text{ChargeMode}_{t} \in \{0, 1\}$$
+So we can construct the following two constraints, where the value of `Mode` "turns on" one of the constraints, and "turns off" the other (because the constraint becomes `<=0`).
 
-$$\sum_{m=1}^{2} X_{m,t} + y/48 \leq c_{rate} * 0.5 * \text{ChargeMode}_{t}$$
+$$X_{1,t} + X_{2,t} + y/48 \leq c_{rate} * 0.5 * \text{Mode}_{t}$$
 
-$$\sum_{m=1}^{2} Z_{m,t} + w/48 \leq d_{rate} * 0.5 * (1 - \text{ChargeMode}_{t})$$
-
+$$Z_{1,t} + Z_{2,t} + w/48 \leq d_{rate} * 0.5 * (1 - \text{Mode}_{t})$$
 
 ### Notes
-- To avoid always discharging fully, we could alter the objective function to give a value to any remaining charge.
-- We should account for the battery degredation, maybe putting a small additional cost on each charge/discharge cycle.
-
+- We could account for the battery degredation. Each cycle will have slightly less capacity over time, and will count towards the total number of lifetime cycles. 
+- For 1 day it takes about 3 seconds to run, so for a year it will take about 18 minutes.

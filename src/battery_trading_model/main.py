@@ -5,6 +5,11 @@ import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
 
 
 def filter_data_by_day(df: pd.DataFrame, day: pd.Timestamp) -> pd.DataFrame:
@@ -20,6 +25,26 @@ def check_data(apx_day: pd.DataFrame, ssp_day: pd.DataFrame, ons_day: pd.DataFra
         raise ValueError(f"Expected 1 daily data point, but got {len(ons_day)}")
     if not apx_day["datetime"].equals(ssp_day["datetime"]):
         raise ValueError("APX and SSP data have different datetime values")
+
+def estimate_final_soc_value(apx_day: pd.DataFrame, ssp_day: pd.DataFrame, ons_day:pd.DataFrame) -> float:
+    total_prices = sum(apx_day["price"]) + sum(ssp_day["price"]) + ons_day["price"].item()*48
+    return total_prices / (len(apx_day) + len(ssp_day) + 48)
+
+def evaluate_profit(
+    P: dict,
+    q: float,
+    X: dict,
+    Z: dict,
+    y: LpVariable,
+    w: LpVariable,
+) -> float:
+    half_hourly_profit = sum(
+        P[m][t] * (Z[m][t].varValue - X[m][t].varValue)
+        for m in P
+        for t in P[m]
+    )
+    daily_profit = q * (w.varValue - y.varValue)
+    return half_hourly_profit + daily_profit
 
 if __name__ == "__main__":
 
@@ -51,6 +76,8 @@ if __name__ == "__main__":
     P = makeDict([Markets, Timepoints], P)
 
     q = ons_day["price"].item()
+
+    final_soc_value = estimate_final_soc_value(apx_day, ssp_day, ons_day)
 
     # add the decision variables
     X = LpVariable.dicts(
@@ -95,8 +122,9 @@ if __name__ == "__main__":
     # add the objective function
     problem += (
         q * (w - y)
-        + lpSum([P[m][t] * (Z[m][t] - X[m][t]) for m in Markets for t in Timepoints]),
-        "Profit_ObjectiveFunction",
+        + lpSum([P[m][t] * (Z[m][t] - X[m][t]) for m in Markets for t in Timepoints])
+        + final_soc_value * SOC[SocTimepoints[-1]],
+        "ObjectiveFunction",
     )
 
     # add the SOC constraints
@@ -137,6 +165,17 @@ if __name__ == "__main__":
     # run the optimisation
     logger.info("Solving the optimization problem...")
     problem.solve()
-    logger.info("Status: %s", LpStatus[problem.status])
+    logger.info(f"Status: {LpStatus[problem.status]}")
+
+    total_profit = evaluate_profit(
+        P=P,
+        q=q,
+        X=X,
+        Z=Z,
+        y=y,
+        w=w
+    )
+    logger.info(f"Estimated profit: {total_profit}")
+    logger.info(f"Theoretical profit from objective function: {value(problem.objective)}")
 
     save_model_results_to_excel(X=X, Z=Z, y=y, w=w, SOC=SOC, path=DATA_DIR / "result.csv")
