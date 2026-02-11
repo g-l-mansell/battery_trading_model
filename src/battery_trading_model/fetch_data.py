@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from enum import Enum
 
 import pandas as pd
@@ -6,6 +6,10 @@ import plotly.express as px
 import requests
 
 from battery_trading_model.constants import DATA_DIR
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 ELEXON_API_URL = "https://data.elexon.co.uk/bmrs/api/v1"
@@ -116,7 +120,7 @@ def fetch_ons_data() -> dict:
     ONS_URL = "https://www.ons.gov.uk/file?uri=/economy/economicoutputandproductivity/output/datasets/systempriceofelectricity/2026"
 
     if (DATA_DIR / excel_file_name).exists():
-        print("ONS data file already exists, skipping fetch")
+        logger.info("ONS excel file already exists, skipping fetch")
 
     else:
         response = requests.get(f"{ONS_URL}/{excel_file_name}")
@@ -136,27 +140,27 @@ def fetch_ons_data() -> dict:
 def format_ons_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={"Date": "datetime", "Daily average": "price"})
     df = df[["datetime", "price"]]
-    df["datetime"] = pd.to_datetime(df["datetime"])
+    df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
     df = df.sort_values("datetime").reset_index(drop=True)
     return df
 
 
 if __name__ == "__main__":
 
-    start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 12, 31)
+    start_date = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    end_date = datetime(2023, 12, 31, tzinfo=timezone.utc)
 
     ### Get Market Index Data
     n2ex_file_name = DATA_DIR / "n2ex_data_2023.csv"
     apx_file_name = DATA_DIR / "apx_data_2023.csv"
 
     if n2ex_file_name.exists() and apx_file_name.exists():
-        print("Data files already exist, skipping fetch and loading from csv")
+        logger.info("Data files already exist, skipping fetch and loading from csv")
         n2ex_df = pd.read_csv(n2ex_file_name)
         apx_df = pd.read_csv(apx_file_name)
 
     else:
-        print("Fetching market index data...")
+        logger.info("Fetching market index data...")
         n2ex_df = get_market_index_data(start_date, end_date, data_provider=DataProvider.N2EX)
         apx_df = get_market_index_data(start_date, end_date, data_provider=DataProvider.APX)
 
@@ -169,10 +173,10 @@ if __name__ == "__main__":
     ssp_file_name = DATA_DIR / "ssp_data_2023.csv"
 
     if ssp_file_name.exists():
-        print("Settlement system data file already exists, skipping fetch and loading from csv")
+        logger.info("Settlement system data file already exists, skipping fetch and loading from csv")
         ssp_df = pd.read_csv(ssp_file_name)
     else:
-        print("Fetching settlement system data...")
+        logger.info("Fetching settlement system data...")
         ssp_df = get_settlement_system_data(start_date, end_date)
         ssp_df.to_csv(ssp_file_name, index=False)
 
@@ -180,10 +184,10 @@ if __name__ == "__main__":
     ### Get ONS Data
     ons_file_name = DATA_DIR / "ons_data_2023.csv"
     if ons_file_name.exists():
-        print("ONS data file already exists, skipping fetch and loading from csv")
+        logger.info("ONS data file already exists, skipping fetch and loading from csv")
         ons_df = pd.read_csv(ons_file_name)
     else:
-        print("Fetching ONS data...")
+        logger.info("Fetching ONS data...")
         ons_df = get_ons_data(start_date, end_date)
         ons_df.to_csv(ons_file_name, index=False)
 

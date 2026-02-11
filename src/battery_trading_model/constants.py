@@ -43,8 +43,6 @@ class BatteryParameters:
 
 
 # initalise a battery with parameters from the BEIS 2018 report
-# Table 7 New Battery Storage FM Data
-# https://assets.publishing.service.gov.uk/media/5f3cf6c9d3bf7f1b0fa7a165/storage-costs-technical-assumptions-2018.pdf
 DEFAULT_BATTERY_PARAMETERS = BatteryParameters(
     C_max=50, 
     c_rate=50, 

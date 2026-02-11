@@ -8,7 +8,6 @@ version = "0.1.0"
 description = "Battery Trading Model"
 authors = [{name = "Georgie Mansell"}]
 dependencies = [
-    "jupyter==1.1.1",
     "pandas==3.0.0",
     "openpyxl==3.1.5",
     "pathlib==1.0.1",
