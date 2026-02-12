@@ -23,3 +23,8 @@ def evaluate_profit(
     )
     daily_profit = q * (w.varValue - y.varValue)
     return half_hourly_profit + daily_profit
+
+
+def get_final_soc(SOC: dict) -> float: 
+    max_key = max(SOC.keys())
+    return SOC[max_key].varValue
