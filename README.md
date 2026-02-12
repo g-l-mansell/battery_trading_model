@@ -99,6 +99,12 @@ $$X_{1,t} + X_{2,t} + y/48 \leq c_{rate} * 0.5 * \text{Mode}_{t}$$
 
 $$Z_{1,t} + Z_{2,t} + w/48 \leq d_{rate} * 0.5 * (1 - \text{Mode}_{t})$$
 
-### Notes
-- We could account for the battery degredation. Each cycle will have slightly less capacity over time, and will count towards the total number of lifetime cycles. 
-- For 1 day it takes about 3 seconds to run, so for a year it will take about 18 minutes.
+
+
+### Todos
+- Add tests
+- Add set up description and instructions to the top of the readme
+- Add a cost to each cycle (since it counts towards the total number of lifetime cycles)
+- Run for the whole year and compare profit to opex+capex (Note for 1 day it takes about 3 seconds to run, so for a year it will take about 18 minutes)
+- Improve the data visualisations
+- Investigate why the daily market is never used
