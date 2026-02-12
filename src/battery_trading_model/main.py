@@ -29,13 +29,13 @@ if __name__ == "__main__":
     daily_profits: list[float] = []
     daily_objectives: list[float] = []
     daily_results: list[pd.DataFrame] = []
-    end_of_day_soc: list[float] = []
+    daily_summary: list[pd.DataFrame] = []
 
     for day_offset in range(num_days):
 
         day = start_day + pd.Timedelta(days=day_offset)
 
-        logger.info(f"Processing data for {day}...")
+        logger.info(f"Processing data for {day.date().isoformat()}...")
 
         apx_day = filter_data_by_day(apx_data, day)
         ssp_day = filter_data_by_day(ssp_data, day)
@@ -53,7 +53,7 @@ if __name__ == "__main__":
             initial_soc=start_of_day_soc,
         )
 
-        logger.info(f"Solving the optimization problem for {day.date()}...")
+        logger.info("Solving the optimization problem...")
         status, objective_value = solve_problem(problem)
         logger.info(f"Status: {status}")
 
@@ -66,9 +66,8 @@ if __name__ == "__main__":
             w=model["w"],
         )
         daily_profits.append(daily_profit)
-        daily_objectives.append(objective_value)
         logger.info(f"Estimated profit: {daily_profit}")
-        logger.info(f"Objective value (inc theoritical price of remaining SOC): {objective_value}")
+        logger.info(f"Objective value: {objective_value}") # includes theoretical price of remaining SOC
 
         results_df = build_model_results_dataframe(
             X=model["X"],
@@ -83,7 +82,24 @@ if __name__ == "__main__":
         final_soc = get_final_soc(model["SOC"])
         initial_soc = final_soc
 
+        daily_summary.append(
+            pd.DataFrame(
+                [
+                    {
+                        "date": day,
+                        "profit": daily_profit,
+                        "objective": objective_value,
+                        "end_soc": final_soc,
+                    }
+                ]
+            )
+        )
+
     output_path = DATA_DIR / "result.csv"
     save_model_results(daily_results=daily_results, path=output_path)
+
+    summary_path = DATA_DIR / "daily_summary.csv"
+    pd.concat(daily_summary, ignore_index=True).to_csv(summary_path, index=False)
+    logger.info(f"Daily summary saved to {summary_path}")
 
     logger.info(f"Total profit over {num_days} days: {sum(daily_profits)}")

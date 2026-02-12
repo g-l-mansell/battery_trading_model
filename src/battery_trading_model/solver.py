@@ -1,8 +1,8 @@
-from pulp import LpProblem, LpStatus, LpVariable, value
+from pulp import LpProblem, LpStatus, LpVariable, value, PULP_CBC_CMD
 
 
 def solve_problem(problem: LpProblem) -> tuple[str, float]:
-    problem.solve()
+    problem.solve(PULP_CBC_CMD(msg=0))
     status = LpStatus[problem.status]
     objective_value = value(problem.objective)
     return status, objective_value
